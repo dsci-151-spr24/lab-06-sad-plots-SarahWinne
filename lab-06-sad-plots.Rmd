@@ -52,7 +52,7 @@ install.packages("devtools")
 devtools::install_github("tidyverse/dsbox")
 ```
 
-```{r eval = TRUE, message = FALSE}
+```{r load_library_block, eval = TRUE, message = FALSE}
 library(tidyverse) 
 library(dsbox) 
 ```
@@ -71,7 +71,7 @@ You can also find this information [here](https://rstudio-education.github.io/ds
 The American Association of University Professors (AAUP) is a nonprofit membership association of faculty and other academic professionals.
 [This report](https://www.aaup.org/sites/default/files/files/AAUP_Report_InstrStaff-75-11_apr2013.pdf) compiled by the AAUP shows trends in instructional staff employees between 1975 and 2011, and contains an image very similar to the one given below.
 
-```{r echo=FALSE, fig.fullwidth = TRUE}
+```{r sad_plot_one, echo=FALSE, fig.fullwidth = TRUE}
 knitr::include_graphics("img/staff-employment.png")
 ```
 
@@ -84,7 +84,7 @@ staff <- read_csv("data/instructional-staff.csv")
 Each row in this dataset represents a faculty type, and the columns are the years for which we have data.
 The values are percentage of hires of that type of faculty for each year.
 
-```{r echo = FALSE}
+```{r display_staff_data, echo = FALSE}
 staff
 ```
 
@@ -97,13 +97,13 @@ If there are 5 faculty types and 11 years of data, how many rows will we have?
 We do the wide to long conversion using a new function: `pivot_longer()`.
 The animation below show how this function works, as well as its counterpart `pivot_wider()`.
 
-```{r echo = FALSE}
+```{r pivot_gif, echo = FALSE}
 knitr::include_graphics("img/tidyr-longer-wider.gif")
 ```
 
 The function has the following arguments:
 
-```{r eval = FALSE}
+```{r code_picot_longer_example, eval = FALSE}
 pivot_longer(data, cols, names_to = "name")
 ```
 
@@ -111,7 +111,7 @@ pivot_longer(data, cols, names_to = "name")
 -   The second argument, `cols`, is where you specify which columns to pivot into longer format -- in this case all columns except for the `faculty_type`
 -   The third argument, `names_to`, is a string specifying the name of the column to create from the data stored in the column names of data -- in this case `year`
 
-```{r}
+```{r staff_longer_dataset}
 staff_long <- staff %>%
   pivot_longer(cols = -faculty_type, names_to = "year") %>%
   mutate(year = as.numeric(year))
@@ -119,14 +119,14 @@ staff_long <- staff %>%
 
 Let's take a look at what the new longer data frame looks like.
 
-```{r}
+```{r displaying_staff_long}
 staff_long
 ```
 
 And now let's plot is as a line plot.
 A possible approach for creating a line plot where we color the lines by faculty type is the following:
 
-```{r fig.width = 10, fig.fullwidth = TRUE, eval = FALSE}
+```{r faculty_type_color_graph, fig.width = 10, fig.fullwidth = TRUE, eval = FALSE}
 staff_long %>%
   ggplot(aes(x = year, y = value, color = faculty_type)) +
   geom_line()
@@ -136,7 +136,7 @@ But note that this results in a message as well as an unexpected plot.
 The message is saying that there is only one observation for each faculty type year combination.
 We can fix this using the `group` aesthetic following.
 
-```{r fig.width = 10, fig.fullwidth = TRUE}
+```{r faculty_type_color_graph_labeled, fig.width = 10, fig.fullwidth = TRUE}
 staff_long %>%
   ggplot(aes(x = year, y = value, group = faculty_type, color = faculty_type)) +
   geom_line() + 
@@ -153,10 +153,12 @@ staff_long %>%
 
 2.  Suppose the objective of this plot was to show that the proportion of part-time faculty have gone up over time compared to other instructional staff types.
     What changes would you propose making to this plot to tell this story and why.
+    
+***Either make the proportion of part time faculty a more noticable color and make the others more background colors, or make the other lines dimmer (like the alpha level in scatter plots)***
 
 3.  Implement the changes you proposed in the previous exercise.
 
-```{r fig.width = 10, fig.fullwidth = TRUE}
+```{r faculty_type_graph, fig.width = 10, fig.fullwidth = TRUE}
 staff_long %>%
   ggplot(aes(x = year, y = value, group = faculty_type, color = faculty_type)) +
   geom_line() + 
@@ -181,19 +183,37 @@ Note that countries whose total harvest was less than 100,000 tons are not inclu
 A researcher shared with you the following visualization they created based on these data.
 😳
 
-```{r echo=FALSE, fig.fullwidth = TRUE}
+```{r sad_plot_two, echo=FALSE, fig.fullwidth = TRUE}
 knitr::include_graphics("img/fisheries.png")
 ```
 
 4.  Can you help them make improve it? First, brainstorm how you would improve it. Then create the improved visualization and write up the changes/decisions you made as bullet points. It's ok if some of your improvements are aspirational, i.e. you don't know how to implement it, but you think it's a good idea.
 
+***Swap x and y on the plot so the labels are readable. Maybe cut down even more on how many countries are included? Make the pie charts (if you use pie charts) so that only the relevant countries have color, or something to make it clearer. Bar charts might look nicer to compare capture and aquaculture and maybe use proportions somewhere, because there are very few countries with significantly more in values and that makes it hard to see data for other countries.***
+
 Load the data.
 
-```{r load-data-fisheries, eval = FALSE}
-fisheries <- read_csv("data/fisheries.csv")
+```{r load-data-fisheries, eval = TRUE}
+fisheries <- read_csv("data/fisheries.csv", show_col_types = FALSE)
 ```
 
 5.  Create a new data visualisation for these data that implements the improvements you proposed in the previous exercise (or many of them as you can).
+
+```{r fishery_proportions_graph}
+fisheries %>%
+  filter(total >= 1000000) %>%
+  select(-total) %>%
+  mutate(country = fct_reorder(country, aquaculture/capture, min)) %>%
+  pivot_longer(cols = -country, names_to = "type") %>%
+  ggplot(aes(y = country, x = value, fill = type)) +
+  geom_bar(stat = "identity", position = "fill") +
+  scale_fill_manual(values = c("#9ecae1", "#3182bd")) +
+  theme(legend.title = element_blank()) +
+  theme(legend.position = "top") +
+  labs(Title = "Fishing by Country",
+       xlab = "Proportions",
+       ylab = "")
+```
 
 🧶 ✅ ⬆️ Knit, *commit, and push your changes to GitHub with an appropriate commit message. Make sure to commit and push all changed files so that your Git pane is cleared up afterwards and review the md document on GitHub to make sure you're happy with the final state of your work.*
 
